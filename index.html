@@ -1,0 +1,1435 @@
+<body>
+
+
+<meta charset="UTF-8">
+<title>Bear Boy Beat 'Em Up</title>
+<style>
+    body {
+        background-color: white;
+        margin: 0;
+        overflow-y: scroll; /* Allow vertical scrolling */
+        position: relative;
+    }
+    #demoText {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 20px;
+        font-family: Arial, sans-serif;
+        z-index: 10;
+   }
+    #gameOverScreen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 700px;
+        height: 700px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        font-family: Arial, sans-serif;
+        font-size: 40px;
+        text-align: center;
+        padding-top: 300px;
+        display: none;
+        z-index: 20;
+    }
+    #roundText {
+        position: absolute;
+        top: 300px;
+        left: 0;
+        width: 700px;
+        text-align: center;
+        font-size: 50px;
+        font-family: Arial, sans-serif;
+        color: white;
+        display: none;
+        z-index: 20;
+    }
+    #pauseText {
+        position: absolute;
+        top: 300px;
+        left: 0;
+        width: 700px;
+        text-align: center;
+        font-size: 50px;
+        font-family: Arial, sans-serif;
+        color: white;
+        display: none;
+        z-index: 20;
+  }
+</style>
+
+
+    <canvas id="gameCanvas" width="700" height="700"></canvas>
+    <div id="demoText"> </div>
+    <div id="scoreText" style="display: none;">Score: 0</div>
+    <div id="soundStatus" style="display: none;">Sound: On</div>
+    <div id="gameOverScreen">Game Over<br>Your Score: 0<br>Press Space to Play Again</div>
+    <div id="roundText">Round 1</div>
+    <div id="pauseText">GAME PAUSED</div>
+    <script>
+        var canvas = document.getElementById('gameCanvas');
+        var ctx = canvas.getContext('2d');
+
+        // Game state
+        var gameState = 'mainMenu'; // 'mainMenu', 'controls', 'characterSelect', 'game', 'gameOver', 'paused'
+
+        // Load images
+        var images = {
+            // Background image
+            background: new Image(),
+            punchEffect: new Image(),
+            titleScreen: new Image(),
+            charSelectBackground: new Image(),
+
+            // Character icons
+            bearBoyIcon: new Image(),
+            bearBroIcon: new Image(),
+            axolotlIcon: new Image(),
+            malfoyIcon: new Image(),
+
+            // Bear Boy images
+            boyPoseA: new Image(),
+            boyPoseB: new Image(),
+            boyPoseC: new Image(),
+            boyPoseD: new Image(),
+            boyPoseE: new Image(),
+            boyPoseF: new Image(),
+            boyPoseG: new Image(),
+            boyPoseH: new Image(),
+            boyPoseI: new Image(),
+            boyPoseJ: new Image(), // Getting hit pose 1
+            boyPoseK: new Image(), // Getting hit pose 2
+
+            // Bear Bro images
+            broPoseA: new Image(),
+            broPoseB: new Image(),
+            broPoseC: new Image(),
+            broPoseD: new Image(),
+            broPoseE: new Image(),
+            broPoseF: new Image(),
+            broPoseG: new Image(),
+            broPoseH: new Image(),
+            broPoseI: new Image(),
+            broPoseJ: new Image(), // Getting hit pose 1
+            broPoseK: new Image(), // Getting hit pose 2
+
+            // Axolotl images
+            axPoseA: new Image(),
+            axPoseB: new Image(),
+            axPoseC: new Image(),
+            axPoseD: new Image(),
+            axPoseE: new Image(),
+            axPoseF: new Image(),
+            axPoseG: new Image(),
+            axPoseH: new Image(),
+            axPoseI: new Image(),
+            axPoseJ: new Image(), // Getting hit pose 1
+            axPoseK: new Image(), // Getting hit pose 2
+
+            // Malfoy images
+            malPoseA: new Image(),
+            malPoseB: new Image(),
+            malPoseC: new Image(),
+            malPoseD: new Image(),
+            malPoseE: new Image(),
+            malPoseF: new Image(),
+            malPoseG: new Image(),
+            malPoseH: new Image(),
+            malPoseI: new Image(),
+            malPoseJ: new Image(), // Getting hit pose 1
+            malPoseK: new Image(), // Getting hit pose 2
+        };
+
+        // Load sounds
+        var sounds = {
+            punch1: new Audio('https://cdn.shopify.com/s/files/1/0678/2415/6960/files/punch1.mp3?v=1732630788'),
+            punch2: new Audio('https://cdn.shopify.com/s/files/1/0678/2415/6960/files/punch2.mp3?v=1732630788'),
+        };
+        var soundEnabled = true;
+
+        // Background image source
+        images.background.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/temp_bg_pixel.png?v=1732491677';
+        images.punchEffect.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/punch_pixel.png?v=1732491674';
+        images.titleScreen.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/title_screen3.png?v=1732633897';
+        images.charSelectBackground.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ch_select.png?v=1732630808';
+
+        // Character icons
+        images.bearBoyIcon.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ch1.png?v=1732630808';
+        images.axolotlIcon.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ch2.png?v=1732630808';
+        images.malfoyIcon.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ch3.png?v=1732630808';
+        images.bearBroIcon.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ch4.png?v=1732630808';
+
+        // Bear Boy image sources
+        images.boyPoseA.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_1.png?v=1732491661'; // Stationary 1
+        images.boyPoseB.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_2.png?v=1732491661'; // Stationary 2
+        images.boyPoseC.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_4.png?v=1732491661'; // Walk 1
+        images.boyPoseD.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_5.png?v=1732491661'; // Walk 2
+        images.boyPoseE.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_3.png?v=1732491661'; // Punch 1
+        images.boyPoseF.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_7.png?v=1732491661'; // Crouch
+        images.boyPoseG.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_6.png?v=1732491661'; // Jump
+        images.boyPoseH.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_8.png?v=1732491661'; // Punch 2
+        images.boyPoseI.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_9.png?v=1732491661'; // Punch 3
+        images.boyPoseJ.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_10.png?v=1732491661'; // Getting Hit 1
+        images.boyPoseK.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/main_11.png?v=1732491661'; // Getting Hit 2
+
+        // Bear Bro image sources
+        images.broPoseA.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_1.png?v=1732491670'; // Stationary 1
+        images.broPoseB.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_2.png?v=1732491670'; // Stationary 2
+        images.broPoseC.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_3.png?v=1732491670'; // Walking 1
+        images.broPoseD.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_4.png?v=1732491670'; // Walking 2
+        images.broPoseE.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_5.png?v=1732491670'; // Punch 1
+        images.broPoseF.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_6.png?v=1732491670'; // Punch 2
+        images.broPoseG.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_7.png?v=1732491670'; // Punch 3
+        images.broPoseH.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_8.png?v=1732491670'; // Jump
+        images.broPoseI.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_9.png?v=1732491670'; // Crouch
+        images.broPoseJ.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_10.png?v=1732491670'; // Getting Hit 1
+        images.broPoseK.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/bro_11.png?v=1732491670'; // Getting Hit 2
+
+        // Axolotl image sources
+        images.axPoseA.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax1.png?v=1732549044'; // Stationary 1
+        images.axPoseB.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax2.png?v=1732549044'; // Stationary 2
+        images.axPoseC.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax4.png?v=1732549044'; // Walking 1
+        images.axPoseD.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax5.png?v=1732549044'; // Walking 2
+        images.axPoseE.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax3.png?v=1732549044'; // Punch 1
+        images.axPoseF.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax8.png?v=1732549044'; // Punch 2
+        images.axPoseG.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax9.png?v=1732549044'; // Punch 3
+        images.axPoseH.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax6.png?v=1732549044'; // Jump
+        images.axPoseI.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax7.png?v=1732549044'; // Crouch
+        images.axPoseJ.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax10.png?v=1732549044'; // Getting Hit 1
+        images.axPoseK.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/ax11.png?v=1732549044'; // Getting Hit 2
+
+        // Malfoy image sources
+        images.malPoseA.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m1.png?v=1732549053'; // Stationary 1
+        images.malPoseB.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m2.png?v=1732549053'; // Stationary 2
+        images.malPoseC.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m4.png?v=1732549053'; // Walking 1
+        images.malPoseD.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m5.png?v=1732549054'; // Walking 2
+        images.malPoseE.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m3.png?v=1732549054'; // Punch 1
+        images.malPoseF.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m8.png?v=1732549054'; // Punch 2
+        images.malPoseG.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m9.png?v=1732549054'; // Punch 3
+        images.malPoseH.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m6.png?v=1732549054'; // Jump
+        images.malPoseI.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m7.png?v=1732549053'; // Crouch
+        images.malPoseJ.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m10.png?v=1732549054'; // Getting Hit 1
+        images.malPoseK.src = 'https://cdn.shopify.com/s/files/1/0678/2415/6960/files/m11.png?v=1732549054'; // Getting Hit 2
+
+        var imagesLoaded = 0;
+        var totalImages = Object.keys(images).length;
+
+        for (var key in images) {
+            images[key].onload = function() {
+                imagesLoaded++;
+                if (imagesLoaded === totalImages) {
+                    init();
+                }
+            };
+        }
+
+        // Toggle for collision and hitbox display (now off by default)
+        var showCollisionBoxes = false;
+
+        // Game variables
+        var roundNumber = 1;
+        var score = 0;
+        var highScore = 0;
+        var paused = false;
+
+        // Main menu selection index
+        var mainMenuIndex = 0; // 0: START, 1: CONTROLS
+
+        // Character templates
+        function createCharacter(characterType) {
+            var character = {
+                x: 0,
+                y: 0,
+                width: 100 * 1.5 * 1.25, // Increased size by 25%
+                height: 150 * 1.5 * 1.25,
+                vx: 0,
+                vy: 0,
+                facing: 'right',
+                state: 'idle',
+                currentFrame: null,
+                lastFrameChangeTime: 0,
+                frameInterval: 800,
+                lastPunchTime: 0,
+                punchStage: 0,
+                comboReady: false,
+                isOnGround: true,
+                jumpStartY: 0,
+                characterType: characterType,
+                hitboxActive: false,
+                hitbox: { x: 0, y: 0, width: 0, height: 0 },
+                hits: [],
+                hitCount: 0,
+                hasHitEnemy: false, // For hit registration
+                // For enemy movement
+                moveDirection: -1, // -1 for left, 1 for right
+                moveTimer: 0,
+                moveInterval: 2000, // Move for 2 seconds
+                stopTimer: 0,
+                stopInterval: 1000, // Stop for 1 second
+                crouchTimer: 0, // For enemy crouching
+                jumpTimer: 0, // For enemy jumping
+                standingOnEnemy: false,
+                platform: null,
+                hitTime: 0, // Time when character got hit
+                health: 100, // Starting health
+                maxHealth: 100,
+                hitPoseIndex: 0, // To alternate between hit poses
+                bounceStartTime: null, // For bounce effect
+                bounceDuration: 300, // Bounce effect duration in milliseconds
+                punchEffects: [], // For punch effect visuals
+                name: characterType,
+            };
+
+            if (characterType === 'BearBoy') {
+                character.images = {
+                    idle: [images.boyPoseA, images.boyPoseB],
+                    walk: [images.boyPoseC, images.boyPoseD],
+                    punch: [images.boyPoseE, images.boyPoseH, images.boyPoseI],
+                    crouch: images.boyPoseF,
+                    jump: images.boyPoseG,
+                    hit: [images.boyPoseJ, images.boyPoseK], // Two hit poses
+                };
+            } else if (characterType === 'BearBro') {
+                character.images = {
+                    idle: [images.broPoseA, images.broPoseB],
+                    walk: [images.broPoseC, images.broPoseD],
+                    punch: [images.broPoseE, images.broPoseF, images.broPoseG],
+                    crouch: images.broPoseI,
+                    jump: images.broPoseH,
+                    hit: [images.broPoseJ, images.broPoseK], // Two hit poses
+                };
+            } else if (characterType === 'Axolotl') {
+                character.images = {
+                    idle: [images.axPoseA, images.axPoseB],
+                    walk: [images.axPoseC, images.axPoseD],
+                    punch: [images.axPoseE, images.axPoseF, images.axPoseG],
+                    crouch: images.axPoseI,
+                    jump: images.axPoseH,
+                    hit: [images.axPoseJ, images.axPoseK],
+                };
+            } else if (characterType === 'Malfoy') {
+                character.images = {
+                    idle: [images.malPoseA, images.malPoseB],
+                    walk: [images.malPoseC, images.malPoseD],
+                    punch: [images.malPoseE, images.malPoseF, images.malPoseG],
+                    crouch: images.malPoseI,
+                    jump: images.malPoseH,
+                    hit: [images.malPoseJ, images.malPoseK],
+                };
+            }
+
+            character.currentFrame = character.images.idle[0];
+            return character;
+        }
+
+        var playerCharacter = null;
+        var enemyCharacter = null;
+
+        var keys = {};
+        var selectionIndex = 0; // Index for character selection
+        var characters = ['BearBoy', 'Axolotl', 'Malfoy', 'BearBro'];
+
+        document.addEventListener('keydown', function(e) {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyX', 'KeyP', 'KeyM'].includes(e.code)) {
+                e.preventDefault(); // Prevent default scrolling behavior
+            }
+            if (!keys[e.code]) {
+                keys[e.code] = true;
+                handleKeyPress(e.code);
+            }
+        });
+
+        document.addEventListener('keyup', function(e) {
+            keys[e.code] = false;
+        });
+
+        function handleKeyPress(code) {
+            if (gameState === 'mainMenu') {
+                if (code === 'ArrowUp' || code === 'ArrowDown') {
+                    mainMenuIndex = mainMenuIndex === 0 ? 1 : 0;
+                } else if (code === 'Space') {
+                    if (mainMenuIndex === 0) {
+                        // START
+                        gameState = 'characterSelect';
+                    } else {
+                        // CONTROLS
+                        gameState = 'controls';
+                    }
+                }
+            } else if (gameState === 'controls') {
+                if (code === 'Space') {
+                    gameState = 'mainMenu';
+                }
+            } else if (gameState === 'characterSelect') {
+                if (code === 'ArrowLeft') {
+                    selectionIndex = (selectionIndex - 1 + characters.length) % characters.length;
+                } else if (code === 'ArrowRight') {
+                    selectionIndex = (selectionIndex + 1) % characters.length;
+                } else if (code === 'ArrowUp') {
+                    if (selectionIndex === 2) selectionIndex = 0;
+                    else if (selectionIndex === 3) selectionIndex = 1;
+                } else if (code === 'ArrowDown') {
+                    if (selectionIndex === 0) selectionIndex = 2;
+                    else if (selectionIndex === 1) selectionIndex = 3;
+                } else if (code === 'Space') {
+                    // Character selected
+                    playerCharacter = createCharacter(characters[selectionIndex]);
+                    initGame();
+                    gameState = 'game';
+                }
+            } else if (gameState === 'game') {
+                if (code === 'Space') {
+                    initiatePunch();
+                } else if (code === 'KeyX') {
+                    showCollisionBoxes = !showCollisionBoxes;
+                } else if (code === 'KeyP') {
+                    paused = !paused;
+                    document.getElementById('pauseText').style.display = paused ? 'block' : 'none';
+                } else if (code === 'KeyM') {
+                    soundEnabled = !soundEnabled;
+                    document.getElementById('soundStatus').innerText = soundEnabled ? 'Sound: On' : 'Sound: Off';
+                }
+            } else if (gameState === 'gameOver') {
+                if (code === 'Space') {
+                    gameState = 'mainMenu';
+                    document.getElementById('gameOverScreen').style.display = 'none';
+                    if (score > highScore) {
+                        highScore = score;
+                    }
+                    score = 0;
+                    roundNumber = 1;
+                    document.getElementById('scoreText').innerText = 'Score: ' + score;
+                }
+            }
+        }
+
+        function initGame() {
+            // Randomly select enemy character different from player
+            var enemyCharacters = characters.filter(function(char) {
+                return char !== playerCharacter.characterType;
+            });
+            var enemyType = enemyCharacters[Math.floor(Math.random() * enemyCharacters.length)];
+            enemyCharacter = createCharacter(enemyType);
+
+            // Randomize enemy health
+            var healthOptions = [50, 75, 100];
+            enemyCharacter.health = healthOptions[Math.floor(Math.random() * healthOptions.length)];
+            enemyCharacter.maxHealth = enemyCharacter.health;
+
+            // Position characters
+            playerCharacter.x = 100;
+            playerCharacter.y = canvas.height - playerCharacter.height - 50;
+            playerCharacter.jumpStartY = playerCharacter.y;
+
+            enemyCharacter.x = canvas.width - enemyCharacter.width - 100;
+            enemyCharacter.y = canvas.height - enemyCharacter.height - 50;
+            enemyCharacter.jumpStartY = enemyCharacter.y;
+            enemyCharacter.facing = 'left'; // Face the player
+
+            // Start enemy idle animation
+            enemyCharacter.lastFrameChangeTime = performance.now();
+
+            // Reset states
+            playerCharacter.state = 'idle';
+            enemyCharacter.state = 'idle';
+
+            // Reset enemy punch timer
+            enemyCharacter.nextPunchTime = performance.now() + getRandomInt(1000, 3000);
+
+            // Clear hits
+            playerCharacter.hits = [];
+            enemyCharacter.hits = [];
+
+            // Clear punch effects
+            playerCharacter.punchEffects = [];
+            enemyCharacter.punchEffects = [];
+
+            // Reset positions
+            playerCharacter.vx = 0;
+            playerCharacter.vy = 0;
+            enemyCharacter.vx = 0;
+            enemyCharacter.vy = 0;
+
+            // Update round text
+            showRoundText();
+
+            // Show score and sound status
+            document.getElementById('scoreText').style.display = 'block';
+            document.getElementById('soundStatus').style.display = 'block';
+            document.getElementById('soundStatus').innerText = soundEnabled ? 'Sound: On' : 'Sound: Off';
+        }
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function initiatePunch() {
+            var character = playerCharacter;
+            if (character.state === 'punching') {
+                return; // Can't punch while already punching
+            }
+
+            var currentTime = performance.now();
+
+            if (character.punchStage === 0) {
+                // Start from Punch 1
+                character.punchStage = 1;
+                character.comboReady = false; // Reset comboReady
+            } else if (character.punchStage === 1 && currentTime - character.lastPunchTime <= 500) {
+                // Proceed to Punch 2
+                character.punchStage = 2;
+                character.comboReady = true; // Combo is ready for Punch 3
+            } else if (character.comboReady && character.punchStage !== 3) {
+                // Execute Punch 3
+                character.punchStage = 3;
+                character.comboReady = false; // Reset comboReady after Punch 3
+            } else {
+                // Any other case, reset to Punch 1
+                character.punchStage = 1;
+                character.comboReady = false;
+            }
+
+            character.state = 'punching';
+            character.lastPunchTime = currentTime;
+            character.hitboxActive = true; // Activate hitbox
+            character.hasHitEnemy = false; // Reset hit flag at punch initiation
+            character.vx = 0; // Stop movement during punch
+
+            // Start bounce effect
+            character.bounceStartTime = currentTime;
+
+            switch (character.punchStage) {
+                case 1:
+                    character.currentFrame = character.images.punch[0];
+                    break;
+                case 2:
+                    character.currentFrame = character.images.punch[1];
+                    break;
+                case 3:
+                    character.currentFrame = character.images.punch[2];
+                    break;
+            }
+        }
+
+        function update(timestamp) {
+            if (gameState === 'mainMenu' || gameState === 'controls' || gameState === 'characterSelect' || gameState === 'gameOver' || paused) {
+                // No update needed
+                return;
+            }
+
+            var character = playerCharacter;
+            var enemy = enemyCharacter;
+
+            // Handle punching
+            if (character.state === 'punching') {
+                if (timestamp - character.lastPunchTime >= 250) { // Punch duration is 0.25 seconds
+                    character.hitboxActive = false; // Deactivate hitbox
+                    if (character.punchStage === 3) {
+                        // After Punch 3, reset punchStage to 0
+                        character.punchStage = 0;
+                    }
+                    // Determine next state based on whether character is in the air
+                    if (!character.isOnGround) {
+                        character.state = 'jumping';
+                        character.currentFrame = character.images.jump;
+                    } else {
+                        character.state = 'idle';
+                        character.currentFrame = character.images.idle[0];
+                    }
+                    character.lastFrameChangeTime = timestamp;
+                }
+            } else {
+                character.hitboxActive = false; // Ensure hitbox is deactivated when not punching
+            }
+
+            // Handle movement
+            if (character.state !== 'punching' && character.state !== 'hit') {
+                character.vx = 0; // Reset horizontal velocity each frame
+
+                if (keys['ArrowLeft']) {
+                    character.vx = -4; // Doubled movement speed
+                    character.facing = 'left';
+                    if (character.state !== 'walking' && character.isOnGround) {
+                        character.state = 'walking';
+                        character.currentFrame = character.images.walk[0];
+                        character.lastFrameChangeTime = timestamp;
+                        character.frameInterval = 250; // Increased walking animation speed
+                    }
+                } else if (keys['ArrowRight']) {
+                    character.vx = 4; // Doubled movement speed
+                    character.facing = 'right';
+                    if (character.state !== 'walking' && character.isOnGround) {
+                        character.state = 'walking';
+                        character.currentFrame = character.images.walk[0];
+                        character.lastFrameChangeTime = timestamp;
+                        character.frameInterval = 250; // Increased walking animation speed
+                    }
+                } else {
+                    if (character.isOnGround && character.state !== 'punching' && character.state !== 'hit') {
+                        if (character.state !== 'idle') {
+                            character.state = 'idle';
+                            character.currentFrame = character.images.idle[0];
+                            character.lastFrameChangeTime = timestamp;
+                            character.frameInterval = 800;
+                        }
+                    }
+                }
+
+                if (keys['ArrowDown'] && character.isOnGround && (character.state === 'idle' || character.state === 'walking') && character.images.crouch) {
+                    // Handle crouching
+                    character.state = 'crouching';
+                    character.currentFrame = character.images.crouch;
+                    character.vx = 0;
+
+                    // Start bounce effect
+                    character.bounceStartTime = timestamp;
+                } else if (keys['ArrowUp'] && character.isOnGround && character.state !== 'punching' && character.images.jump) {
+                    // Initiate jump
+                    character.state = 'jumping';
+                    character.currentFrame = character.images.jump;
+                    character.lastFrameChangeTime = timestamp;
+                    character.vy = -22.5; // Increased jump height by 50%
+                    character.jumpStartY = character.y;
+                    character.isOnGround = false;
+                    character.standingOnEnemy = false;
+                    character.platform = null;
+
+                    // Start bounce effect
+                    character.bounceStartTime = timestamp;
+                }
+            }
+
+            // Apply gravity
+            if (!character.isOnGround) {
+                character.vy += 0.5; // Gravity
+            }
+
+            // Update positions
+            character.x += character.vx;
+            character.y += character.vy;
+
+            // Enemy behavior
+            updateEnemy(enemy, timestamp);
+
+            // Collision detection with enemy
+            resolveCollision(character, enemy);
+
+            // Handle landing on the ground for the player
+            if (character.y + character.height >= canvas.height - 50) {
+                character.y = canvas.height - 50 - character.height;
+                character.vy = 0;
+                character.isOnGround = true;
+                character.standingOnEnemy = false;
+                character.platform = null;
+                if (character.state === 'jumping') {
+                    character.state = 'idle';
+                    character.currentFrame = character.images.idle[0];
+                }
+            }
+
+            // Keep character within bounds
+            if (character.x < 0) character.x = 0;
+            if (character.x > canvas.width - character.width) character.x = canvas.width - character.width;
+
+            // Handle animation frame changes
+            if (timestamp - character.lastFrameChangeTime >= character.frameInterval) {
+                character.lastFrameChangeTime = timestamp;
+                if (character.state === 'idle') {
+                    var idleFrames = character.images.idle;
+                    character.currentFrame = idleFrames[(idleFrames.indexOf(character.currentFrame) + 1) % idleFrames.length];
+                } else if (character.state === 'walking') {
+                    var walkFrames = character.images.walk;
+                    character.currentFrame = walkFrames[(walkFrames.indexOf(character.currentFrame) + 1) % walkFrames.length];
+                }
+            }
+
+            // Move with platform (enemy) if standing on top
+            if (character.standingOnEnemy && character.platform === enemy) {
+                character.x += enemy.vx;
+            }
+
+            // Update hitbox
+            if (character.hitboxActive) {
+                var extension = character.width * 0.15; // 15% extension
+                if (character.facing === 'right') {
+                    character.hitbox.x = character.x + character.width / 2;
+                    character.hitbox.width = character.width / 2 + extension;
+                } else {
+                    character.hitbox.x = character.x - extension;
+                    character.hitbox.width = character.width / 2 + extension;
+                }
+                character.hitbox.y = character.y;
+                character.hitbox.height = character.height;
+            }
+
+            // Check for collision
+            if (character.hitboxActive && checkCollision(character.hitbox, enemy) && !character.hasHitEnemy) {
+                character.hasHitEnemy = true; // Register hit
+                character.hitCount = (character.hitCount % 3) + 1; // Cycle hit count from 1 to 3
+                var colors = ['red', 'blue', 'green'];
+                var color = colors[(character.hitCount - 1) % colors.length];
+
+                // Determine damage
+                var damage = 1;
+                var hitText = '+1 hit';
+
+                if (character.punchStage === 3) {
+                    damage = 3;
+                    hitText = 'COMBO PUNCH!';
+                    // Add colorful effect
+                    character.hits.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y - 20,
+                        time: timestamp,
+                        text: hitText,
+                        opacity: 1,
+                        colorful: true, // New property to indicate colorful text
+                    });
+                } else {
+                    character.hits.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y - 20,
+                        time: timestamp,
+                        text: hitText,
+                        opacity: 1,
+                        color: color,
+                    });
+                }
+
+                // Check if enemy is blocking
+                if (enemy.state === 'crouching') {
+                    // Show "BLOCKED!" text
+                    enemy.hits.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y - 20,
+                        time: timestamp,
+                        text: 'BLOCKED!',
+                        opacity: 1,
+                        color: 'yellow',
+                    });
+                } else {
+                    // Play punch sound
+                    playPunchSound();
+
+                    // Set enemy state to 'hit'
+                    enemy.state = 'hit';
+                    enemy.hitTime = timestamp; // Record the time the enemy got hit
+                    enemy.vx = 0; // Stop enemy movement when hit
+
+                    // Alternate hit poses
+                    enemy.hitPoseIndex = (enemy.hitPoseIndex + 1) % enemy.images.hit.length;
+                    enemy.currentFrame = enemy.images.hit[enemy.hitPoseIndex];
+
+                    // Reduce enemy health
+                    enemy.health -= damage;
+
+                    // Start bounce effect on enemy
+                    enemy.bounceStartTime = timestamp;
+
+                    // Add punch effect at center of attacker's hitbox
+                    var effectX = character.hitbox.x + character.hitbox.width / 2;
+                    var effectY = character.hitbox.y + character.hitbox.height / 2;
+                    character.punchEffects.push({
+                        x: effectX,
+                        y: effectY,
+                        time: timestamp,
+                        size: 70,
+                        shrinking: false,
+                    });
+
+                    // Check for enemy defeat
+                    if (enemy.health <= 0) {
+                        score++;
+                        document.getElementById('scoreText').innerText = 'Score: ' + score;
+                        roundNumber++;
+                        initGame(); // Start new round
+                    }
+                }
+            }
+
+            // Update punch effects
+            character.punchEffects = character.punchEffects.filter(function(effect) {
+                var elapsedFrames = (timestamp - effect.time) / (1000 / 60);
+                if (elapsedFrames >= 2) {
+                    return false;
+                } else if (elapsedFrames >= 1 && !effect.shrinking) {
+                    effect.size /= 2;
+                    effect.shrinking = true;
+                }
+                return true;
+            });
+
+            // Update hits (for fading out)
+            character.hits = character.hits.filter(function(hit) {
+                var elapsed = timestamp - hit.time;
+                if (elapsed > 1000) {
+                    return false;
+                } else {
+                    hit.opacity = 1 - elapsed / 1000;
+
+                    // Update color if colorful
+                    if (hit.colorful) {
+                        var colors = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
+                        var colorIndex = Math.floor((elapsed / 1000) * colors.length) % colors.length;
+                        hit.color = colors[colorIndex];
+                    }
+
+                    return true;
+                }
+            });
+
+            // Handle 'hit' state for player
+            if (character.state === 'hit') {
+                if (timestamp - character.hitTime >= 350) {
+                    if (!character.isOnGround) {
+                        character.state = 'jumping';
+                        character.currentFrame = character.images.jump;
+                    } else {
+                        character.state = 'idle';
+                        character.currentFrame = character.images.idle[0];
+                    }
+                    character.lastFrameChangeTime = timestamp;
+                }
+            }
+        }
+
+        function playPunchSound() {
+            if (!soundEnabled) return;
+            var punchSounds = [sounds.punch1, sounds.punch2];
+            var sound = punchSounds[Math.floor(Math.random() * punchSounds.length)];
+            sound.currentTime = 0;
+            sound.play();
+        }
+
+        function gameOver() {
+            gameState = 'gameOver';
+            var gameOverScreen = document.getElementById('gameOverScreen');
+            gameOverScreen.innerHTML = 'Game Over<br>Your Score: ' + score + '<br>Press Space to Play Again';
+            gameOverScreen.style.display = 'block';
+            if (score > highScore) {
+                highScore = score;
+            }
+            document.getElementById('scoreText').style.display = 'none';
+            document.getElementById('soundStatus').style.display = 'none';
+        }
+
+        function resolveCollision(player, enemy) {
+            // Calculate collision boxes
+            var playerCollisionBox = {
+                x: player.x + (player.width * 0.175), // Thinned collision box by 15%
+                y: player.y,
+                width: player.width * 0.65, // Reduced width
+                height: player.height,
+            };
+
+            var enemyCollisionBox = {
+                x: enemy.x + (enemy.width * 0.175),
+                y: enemy.y,
+                width: enemy.width * 0.65,
+                height: enemy.height,
+            };
+
+            if (checkCollision(playerCollisionBox, enemyCollisionBox)) {
+                // Collision detected
+                var overlapX = Math.max(0, Math.min(playerCollisionBox.x + playerCollisionBox.width, enemyCollisionBox.x + enemyCollisionBox.width) - Math.max(playerCollisionBox.x, enemyCollisionBox.x));
+
+                if (overlapX > 0) {
+                    // Resolve collision on X axis
+                    if (player.x < enemy.x) {
+                        var pushback = (playerCollisionBox.x + playerCollisionBox.width) - enemyCollisionBox.x;
+                        player.x -= pushback / 2;
+                        enemy.x += pushback / 2;
+                    } else {
+                        var pushback = (enemyCollisionBox.x + enemyCollisionBox.width) - playerCollisionBox.x;
+                        player.x += pushback / 2;
+                        enemy.x -= pushback / 2;
+                    }
+                    player.vx = 0;
+                    enemy.vx = 0;
+                }
+            }
+        }
+
+        function updateEnemy(enemy, timestamp) {
+            // Handle 'hit' state
+            if (enemy.state === 'hit') {
+                enemy.vx = 0; // Stop moving when hit
+                if (timestamp - enemy.hitTime >= 350) { // Hit pose duration is 0.35 seconds
+                    enemy.state = 'idle';
+                    enemy.currentFrame = enemy.images.idle[0];
+                    enemy.lastFrameChangeTime = timestamp;
+                } else {
+                    return; // Skip rest of the update during hit state
+                }
+            }
+
+            // Enemy punching logic
+            if (timestamp >= enemy.nextPunchTime && enemy.isOnGround && enemy.state !== 'punching' && enemy.state !== 'crouching') {
+                initiateEnemyPunch(enemy, timestamp);
+            }
+
+            // Handle enemy punching
+            if (enemy.state === 'punching') {
+                if (timestamp - enemy.lastPunchTime >= 250) { // Punch duration is 0.25 seconds
+                    enemy.hitboxActive = false; // Deactivate hitbox
+
+                    if (enemy.punchStage === 1) {
+                        // Proceed to next punch
+                        enemy.punchStage = 2;
+                        enemy.state = 'punching';
+                        enemy.lastPunchTime = timestamp;
+                        enemy.hitboxActive = true;
+                        enemy.hasHitEnemy = false;
+                        enemy.currentFrame = enemy.images.punch[1]; // Use second punch image
+
+                        // Start bounce effect
+                        enemy.bounceStartTime = timestamp;
+                    } else {
+                        // Finish punching
+                        enemy.punchStage = 0;
+                        enemy.state = 'idle';
+                        enemy.lastFrameChangeTime = timestamp;
+                        enemy.currentFrame = enemy.images.idle[0];
+                        // Schedule next punch
+                        enemy.nextPunchTime = timestamp + getRandomInt(1000, 3000);
+                    }
+                }
+            } else {
+                enemy.hitboxActive = false;
+            }
+
+            // Enemy random actions
+            if (enemy.state !== 'punching' && enemy.state !== 'hit' && enemy.state !== 'crouching') {
+                var randomAction = Math.random();
+
+                // Randomly decide to jump or crouch
+                if (randomAction < 0.01 && enemy.isOnGround && enemy.state !== 'jumping' && enemy.state !== 'crouching') {
+                    var actionType = Math.random();
+                    if (actionType < 0.5) {
+                        // Jump
+                        enemy.state = 'jumping';
+                        enemy.currentFrame = enemy.images.jump;
+                        enemy.vy = -22.5;
+                        enemy.isOnGround = false;
+
+                        // Start bounce effect
+                        enemy.bounceStartTime = timestamp;
+                    } else {
+                        // Crouch
+                        enemy.state = 'crouching';
+                        enemy.currentFrame = enemy.images.crouch;
+                        enemy.crouchTimer = getRandomInt(1000, 5000); // Crouch for up to 5 seconds
+                        enemy.vx = 0; // Stop moving while crouching
+                    }
+                }
+            }
+
+            // Handle crouching timer
+            if (enemy.state === 'crouching') {
+                enemy.vx = 0; // Ensure enemy doesn't move while crouching
+                enemy.crouchTimer -= 16.67; // Approximate frame time
+                if (enemy.crouchTimer <= 0) {
+                    enemy.state = 'idle';
+                    enemy.currentFrame = enemy.images.idle[0];
+                    enemy.lastFrameChangeTime = timestamp;
+                }
+            }
+
+            // Enemy movement logic
+            if (enemy.state !== 'punching' && enemy.state !== 'hit' && enemy.state !== 'crouching') {
+                if (enemy.moveTimer > 0) {
+                    enemy.moveTimer -= 16.67; // Approximate frame time
+                    enemy.vx = 2 * enemy.moveDirection;
+                    enemy.facing = enemy.moveDirection === -1 ? 'left' : 'right';
+                    enemy.x += enemy.vx;
+
+                    if (enemy.state !== 'walking' && enemy.state !== 'jumping') {
+                        enemy.state = 'walking';
+                        enemy.currentFrame = enemy.images.walk[0];
+                        enemy.lastFrameChangeTime = timestamp;
+                        enemy.frameInterval = 250;
+                    }
+
+                    // Check for screen boundaries
+                    if (enemy.x <= 0) {
+                        enemy.x = 0;
+                        enemy.moveDirection = 1;
+                    } else if (enemy.x + enemy.width >= canvas.width) {
+                        enemy.x = canvas.width - enemy.width;
+                        enemy.moveDirection = -1;
+                    }
+                } else if (enemy.stopTimer > 0) {
+                    enemy.stopTimer -= 16.67;
+                    enemy.vx = 0;
+
+                    if (enemy.state !== 'idle' && enemy.state !== 'jumping') {
+                        enemy.state = 'idle';
+                        enemy.currentFrame = enemy.images.idle[0];
+                        enemy.lastFrameChangeTime = timestamp;
+                        enemy.frameInterval = 800;
+                    }
+                } else {
+                    // Decide whether to move or stop
+                    var rand = Math.random();
+                    if (rand < 0.5) {
+                        // Move
+                        enemy.moveTimer = enemy.moveInterval;
+                    } else {
+                        // Stop
+                        enemy.stopTimer = enemy.stopInterval;
+                    }
+                }
+            }
+
+            // Enemy animation frame changes
+            if (timestamp - enemy.lastFrameChangeTime >= enemy.frameInterval) {
+                enemy.lastFrameChangeTime = timestamp;
+                if (enemy.state === 'idle') {
+                    var idleFrames = enemy.images.idle;
+                    enemy.currentFrame = idleFrames[(idleFrames.indexOf(enemy.currentFrame) + 1) % idleFrames.length];
+                } else if (enemy.state === 'walking') {
+                    var walkFrames = enemy.images.walk;
+                    enemy.currentFrame = walkFrames[(walkFrames.indexOf(enemy.currentFrame) + 1) % enemy.images.walk.length];
+                }
+            }
+
+            // Apply gravity to enemy
+            if (!enemy.isOnGround) {
+                enemy.vy += 0.5; // Gravity
+            } else {
+                enemy.vy = 0;
+            }
+
+            enemy.y += enemy.vy;
+
+            // Handle landing for enemy
+            if (enemy.y + enemy.height >= canvas.height - 50) {
+                enemy.y = canvas.height - 50 - enemy.height;
+                enemy.vy = 0;
+                enemy.isOnGround = true;
+                if (enemy.state === 'jumping') {
+                    enemy.state = 'idle';
+                    enemy.currentFrame = enemy.images.idle[0];
+                    enemy.lastFrameChangeTime = timestamp;
+                }
+            }
+
+            // Update enemy hitbox if punching
+            if (enemy.hitboxActive) {
+                var extension = enemy.width * 0.15; // 15% extension
+                if (enemy.facing === 'right') {
+                    enemy.hitbox.x = enemy.x + enemy.width / 2;
+                    enemy.hitbox.width = enemy.width / 2 + extension;
+                } else {
+                    enemy.hitbox.x = enemy.x - extension;
+                    enemy.hitbox.width = enemy.width / 2 + extension;
+                }
+                enemy.hitbox.y = enemy.y;
+                enemy.hitbox.height = enemy.height;
+            }
+
+            // Check if enemy hits player
+            if (enemy.hitboxActive && checkCollision(enemy.hitbox, playerCharacter) && !enemy.hasHitEnemy) {
+                enemy.hasHitEnemy = true; // Register hit
+
+                // If player is crouching (blocking)
+                if (playerCharacter.state === 'crouching') {
+                    playerCharacter.hits.push({
+                        x: playerCharacter.x + playerCharacter.width / 2,
+                        y: playerCharacter.y - 20,
+                        time: timestamp,
+                        text: 'BLOCKED!',
+                        opacity: 1,
+                        color: 'yellow',
+                    });
+                } else {
+                    // Play punch sound
+                    playPunchSound();
+
+                    // Set player state to 'hit'
+                    playerCharacter.state = 'hit';
+                    playerCharacter.hitTime = timestamp; // Record the time the player got hit
+                    playerCharacter.vx = 0; // Stop player movement when hit
+
+                    // Alternate hit poses
+                    playerCharacter.hitPoseIndex = (playerCharacter.hitPoseIndex + 1) % playerCharacter.images.hit.length;
+                    playerCharacter.currentFrame = playerCharacter.images.hit[playerCharacter.hitPoseIndex];
+
+                    // Reduce player health
+                    playerCharacter.health -= 1;
+
+                    // Start bounce effect on player
+                    playerCharacter.bounceStartTime = timestamp;
+
+                    // Add punch effect at center of attacker's hitbox
+                    var effectX = enemy.hitbox.x + enemy.hitbox.width / 2;
+                    var effectY = enemy.hitbox.y + enemy.hitbox.height / 2;
+                    enemy.punchEffects.push({
+                        x: effectX,
+                        y: effectY,
+                        time: timestamp,
+                        size: 70,
+                        shrinking: false,
+                    });
+
+                    // Check for game over
+                    if (playerCharacter.health <= 0) {
+                        gameOver();
+                    }
+                }
+            }
+
+            // Update enemy punch effects
+            enemy.punchEffects = enemy.punchEffects.filter(function(effect) {
+                var elapsedFrames = (timestamp - effect.time) / (1000 / 60);
+                if (elapsedFrames >= 2) {
+                    return false;
+                } else if (elapsedFrames >= 1 && !effect.shrinking) {
+                    effect.size /= 2;
+                    effect.shrinking = true;
+                }
+                return true;
+            });
+
+            // Update enemy hits (for fading out)
+            enemy.hits = enemy.hits.filter(function(hit) {
+                var elapsed = timestamp - hit.time;
+                if (elapsed > 1000) {
+                    return false;
+                } else {
+                    hit.opacity = 1 - elapsed / 1000;
+                    return true;
+                }
+            });
+
+            // Prevent enemy from pushing player
+            resolveCollision(enemy, playerCharacter);
+        }
+
+        function initiateEnemyPunch(enemy, timestamp) {
+            if (!enemy.isOnGround || enemy.state === 'punching') {
+                return; // Can't punch while jumping or already punching
+            }
+
+            enemy.punchStage = 1;
+            enemy.comboReady = false;
+            enemy.state = 'punching';
+            enemy.lastPunchTime = timestamp;
+            enemy.hitboxActive = true; // Activate hitbox
+            enemy.hasHitEnemy = false; // Reset hit flag at punch initiation
+            enemy.vx = 0; // Stop movement during punch
+
+            // Face the player
+            if (enemy.x < playerCharacter.x) {
+                enemy.facing = 'right';
+            } else {
+                enemy.facing = 'left';
+            }
+
+            // Start bounce effect
+            enemy.bounceStartTime = timestamp;
+
+            enemy.currentFrame = enemy.images.punch[0]; // Use first punch image
+        }
+
+        function checkCollision(a, b) {
+            return (
+                a.x < b.x + b.width &&
+                a.x + a.width > b.x &&
+                a.y < b.y + b.height &&
+                a.y + a.height > b.y
+            );
+        }
+
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'mainMenu') {
+                // Draw title screen
+                ctx.drawImage(images.titleScreen, 0, 0, canvas.width, canvas.height);
+
+                // Draw demo text
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'black';
+                ctx.fillText('demo 0.1.7', canvas.width / 2, 50);
+
+                // Draw high score
+                ctx.font = '24px Arial';
+                ctx.fillStyle = 'black';
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.strokeText('Your High Score: ' + highScore, canvas.width / 2, 100);
+                ctx.fillText('Your High Score: ' + highScore, canvas.width / 2, 100);
+
+                // Draw menu options
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'left';
+                var startX = 50;
+                var startY = canvas.height - 150;
+                ctx.fillStyle = mainMenuIndex === 0 ? 'red' : 'black';
+                ctx.fillText('START', startX, startY);
+
+                ctx.fillStyle = mainMenuIndex === 1 ? 'red' : 'black';
+                ctx.fillText('CONTROLS', startX, startY + 50);
+            } else if (gameState === 'controls') {
+                // Draw controls screen
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'black';
+                ctx.fillText('Controls', canvas.width / 2, 100);
+
+                ctx.font = '20px Arial';
+                ctx.fillText('Left Arrow Key: Move Left', canvas.width / 2, 150);
+                ctx.fillText('Right Arrow Key: Move Right', canvas.width / 2, 180);
+                ctx.fillText('Up Arrow Key: Jump', canvas.width / 2, 210);
+                ctx.fillText('Down Arrow Key: Crouch (Block)', canvas.width / 2, 240);
+                ctx.fillText('Space Bar: Punch', canvas.width / 2, 270);
+                ctx.fillText('X Key: Toggle Collision Boxes', canvas.width / 2, 300);
+                ctx.fillText('P Key: Pause Game', canvas.width / 2, 330);
+                ctx.fillText('M Key: Mute/Unmute Sounds', canvas.width / 2, 360);
+                ctx.fillText('Press Space to Return to Main Menu', canvas.width / 2, 410);
+            } else if (gameState === 'characterSelect') {
+                // Draw character selection screen
+
+                // Draw background behind character
+                ctx.drawImage(images.charSelectBackground, 0, 0, canvas.width / 2, canvas.height);
+
+                // Draw animated character on the left side
+                var char = createCharacter(characters[selectionIndex]);
+                char.x = (canvas.width / 4) - (char.width / 2);
+                char.y = canvas.height - char.height - 50;
+                char.currentFrame = char.images.idle[0];
+                drawCharacter(char);
+
+                // Draw character icons on the right side
+                var iconSize = 100;
+                var iconStartX = canvas.width / 2 + 50;
+                var iconStartY = 150;
+                var iconPadding = 20;
+
+                var icons = [
+                    images.bearBoyIcon,
+                    images.axolotlIcon,
+                    images.malfoyIcon,
+                    images.bearBroIcon,
+                ];
+
+                for (var i = 0; i < icons.length; i++) {
+                    var row = Math.floor(i / 2);
+                    var col = i % 2;
+                    var x = iconStartX + (iconSize + iconPadding) * col;
+                    var y = iconStartY + (iconSize + iconPadding) * row;
+
+                    ctx.drawImage(icons[i], x, y, iconSize, iconSize);
+
+                    // Draw selection rectangle
+                    if (i === selectionIndex) {
+                        ctx.strokeStyle = 'red';
+                        ctx.lineWidth = 5;
+                        ctx.strokeRect(x, y, iconSize, iconSize);
+                    }
+                }
+            } else if (gameState === 'game' || gameState === 'roundTransition' || paused) {
+                // Draw background
+                ctx.drawImage(images.background, 0, 0, canvas.width, canvas.height);
+
+                // Draw health bars with names and health numbers
+                drawHealthBar(playerCharacter.health, playerCharacter.maxHealth, 20, 40, false, playerCharacter.name);
+                drawHealthBar(enemyCharacter.health, enemyCharacter.maxHealth, canvas.width - 220, 40, true, enemyCharacter.name);
+
+                // Draw score in the middle
+                ctx.font = '24px Arial';
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.textAlign = 'center';
+                ctx.strokeText('Score: ' + score, canvas.width / 2, 40);
+                ctx.fillText('Score: ' + score, canvas.width / 2, 40);
+
+                // Draw enemy
+                drawCharacter(enemyCharacter);
+
+                // Draw player
+                drawCharacter(playerCharacter);
+
+                // Draw hits
+                playerCharacter.hits.forEach(function(hit) {
+                    ctx.font = '20px Arial';
+                    ctx.fillStyle = hit.color;
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = hit.opacity;
+                    ctx.strokeText(hit.text, hit.x, hit.y);
+                    ctx.fillText(hit.text, hit.x, hit.y);
+                    ctx.globalAlpha = 1;
+                });
+
+                enemyCharacter.hits.forEach(function(hit) {
+                    ctx.font = '20px Arial';
+                    ctx.fillStyle = hit.color;
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = hit.opacity;
+                    ctx.strokeText(hit.text, hit.x, hit.y);
+                    ctx.fillText(hit.text, hit.x, hit.y);
+                    ctx.globalAlpha = 1;
+                });
+
+                // Draw punch effects
+                drawPunchEffects(playerCharacter.punchEffects);
+                drawPunchEffects(enemyCharacter.punchEffects);
+
+                // Draw hitbox
+                if (showCollisionBoxes) {
+                    if (playerCharacter.hitboxActive) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                        ctx.fillRect(
+                            playerCharacter.hitbox.x,
+                            playerCharacter.hitbox.y,
+                            playerCharacter.hitbox.width,
+                            playerCharacter.hitbox.height
+                        );
+                    }
+                    if (enemyCharacter.hitboxActive) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                        ctx.fillRect(
+                            enemyCharacter.hitbox.x,
+                            enemyCharacter.hitbox.y,
+                            enemyCharacter.hitbox.width,
+                            enemyCharacter.hitbox.height
+                        );
+                    }
+                }
+            }
+        }
+
+        function drawHealthBar(health, maxHealth, x, y, flip, name) {
+            var width = 200;
+            var height = 20;
+            var healthWidth = (health / maxHealth) * width;
+
+            ctx.fillStyle = 'black';
+            ctx.fillRect(x - 2, y - 2, width + 4, height + 4);
+
+            var healthPercentage = health / maxHealth;
+            if (healthPercentage <= 0.3) {
+                ctx.fillStyle = 'red';
+            } else {
+                ctx.fillStyle = 'green';
+            }
+
+            if (flip) {
+                ctx.fillRect(x + (width - healthWidth), y, healthWidth, height);
+            } else {
+                ctx.fillRect(x, y, healthWidth, height);
+            }
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+
+            // Draw name above health bar
+            ctx.font = '20px Arial';
+            ctx.fillStyle = 'black';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.textAlign = 'center';
+            ctx.strokeText(name, x + width / 2, y - 5);
+            ctx.fillText(name, x + width / 2, y - 5);
+
+            // Draw health numbers below health bar
+            ctx.strokeText(health + ' / ' + maxHealth, x + width / 2, y + height + 20);
+            ctx.fillText(health + ' / ' + maxHealth, x + width / 2, y + height + 20);
+        }
+
+        function drawCharacter(character) {
+            ctx.save();
+
+            // Handle bounce effect (squash/stretch)
+            var scaleY = 1;
+            if (character.bounceStartTime) {
+                var elapsed = performance.now() - character.bounceStartTime;
+                if (elapsed <= character.bounceDuration) {
+                    var progress = elapsed / character.bounceDuration;
+                    if (progress < 0.5) {
+                        // Squash to 90%
+                        scaleY = 1 - 0.1 * (progress / 0.5);
+                    } else {
+                        // Stretch to 110%
+                        scaleY = 0.9 + 0.2 * ((progress - 0.5) / 0.5);
+                    }
+                } else {
+                    character.bounceStartTime = null; // End bounce effect
+                }
+            }
+
+            // Anchor point at the bottom
+            ctx.translate(character.x + character.width / 2, character.y + character.height);
+            if (character.facing === 'left') {
+                ctx.scale(-1, scaleY);
+            } else {
+                ctx.scale(1, scaleY);
+            }
+            ctx.drawImage(
+                character.currentFrame,
+                -character.width / 2,
+                -character.height, // Since we're anchored at the bottom
+                character.width,
+                character.height
+            );
+
+            ctx.restore();
+
+            // Draw collision box
+            if (showCollisionBoxes) {
+                ctx.strokeStyle = 'green';
+                ctx.lineWidth = 2;
+
+                var collisionWidth = character.width * 0.65; // Reduced width
+                var collisionHeight = character.height * 0.8;
+                var collisionX = character.x + (character.width - collisionWidth) / 2;
+                var collisionY = character.y + (character.height - collisionHeight) / 2;
+
+                ctx.strokeRect(collisionX, collisionY, collisionWidth, collisionHeight);
+            }
+        }
+
+        function drawPunchEffects(effects) {
+            effects.forEach(function(effect) {
+                ctx.drawImage(
+                    images.punchEffect,
+                    effect.x - effect.size / 2,
+                    effect.y - effect.size / 2,
+                    effect.size,
+                    effect.size
+                );
+            });
+        }
+
+        function gameLoop(timestamp) {
+            update(timestamp);
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function init() {
+            requestAnimationFrame(gameLoop);
+        }
+
+        function showRoundText() {
+            var roundTextDiv = document.getElementById('roundText');
+            roundTextDiv.innerText = 'Round ' + roundNumber;
+            roundTextDiv.style.display = 'block';
+            gameState = 'roundTransition';
+            setTimeout(function() {
+                roundTextDiv.style.display = 'none';
+                gameState = 'game';
+            }, 2000);
+        }
+    </script>
+
+
+</body>
