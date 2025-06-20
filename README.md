@@ -9,7 +9,7 @@ Step into the world of **Dangani Studios** and brawl it out with original mascot
 
 ## 🎮 Play It Now
 
-👉 [Click here to play Dangani Battle](https://danganiiiii.github.io/dangani-vs/)  
+👉 [Click here to play Dangani Battle](https://danganiiiii.github.io/dangani-battle/)  
 *(Only can be played with a keyboard on ideally on a desktop or a laptop)*
 
 ---
